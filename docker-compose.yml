@@ -1,0 +1,79 @@
+version: '3'
+
+services:
+  mongodb1:
+    container_name: "${PRIMARY_CONTAINER_NAME}"
+    image: mongo:4.4.4
+    restart: always
+    volumes:
+      - ./.data/mongodata1:/data/db
+    ports:
+      - "${PRIMARY_HOST_PORT}:27017"
+    entrypoint: ["/usr/bin/mongod", "--replSet", "${REPLICA_SET_ID}", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1"]
+    environment:
+      MONGO_INITDB_DATABASE: "${DB_NAME}"
+      MONGO_INITDB_ROOT_USERNAME: "${DB_ROOT_USER}"
+      MONGO_INITDB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+
+  mongodb2:
+    container_name: "${SECONDARY_CONTAINER_NAME}"
+    image: mongo:4.4.4
+    restart: always
+    volumes:
+      - ./.data/mongodata2:/data/db
+    ports:
+      - "${SECONDARY_HOST_PORT}:27017"
+    entrypoint: ["/usr/bin/mongod", "--replSet", "${REPLICA_SET_ID}", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1"]
+    environment:
+      MONGO_INITDB_DATABASE: "${DB_NAME}"
+      MONGO_INITDB_ROOT_USERNAME: "${DB_ROOT_USER}"
+      MONGO_INITDB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+
+  mongodb3:
+    container_name: "${TERTIARY_CONTAINER_NAME}"
+    image: mongo:4.4.4
+    restart: always
+    volumes:
+      - ./.data/mongodata3:/data/db
+    ports:
+      - "${TERTIARY_HOST_PORT}:27017"
+    entrypoint: ["/usr/bin/mongod", "--replSet", "${REPLICA_SET_ID}", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1"]
+    environment:
+      MONGO_INITDB_DATABASE: "${DB_NAME}"
+      MONGO_INITDB_ROOT_USERNAME: "${DB_ROOT_USER}"
+      MONGO_INITDB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+
+  mongosetup:
+    container_name: "${PROXY_CONTAINER_NAME}"
+    image: mongo:4.4.4
+
+    # The tail -F ... command is to ensure the container does not exit
+    # after setting up the replica set and db.
+    # We don't want it to exit, so that we can "exec" into it,
+    # and use it to connect to our replica set databases, if we need to,
+    # otherwise, there's no other reason for letting it stay up after
+    # the replica set and db setup are complete.
+    command: [
+      bash, -c,
+      "/config/wait-for-it.sh mongodb1:27017 --
+       /config/setup-replica-set.sh &&
+       /config/setup-db-and-users.sh &&
+       /config/create-init-flag.sh &&
+       tail -F /dev/null"
+    ]
+    depends_on:
+      - mongodb1
+    volumes:
+      - ./cfg:/config:ro
+      - ./.data/mongosetup:/data/
+    environment:
+      DATABASE_NAME:         "${DB_NAME}"
+      ROOT_USERNAME:         "${DB_ROOT_USER}"
+      ROOT_PASSWORD:         "${DB_ROOT_PASSWORD}"
+      NON_ROOT_USERNAME:     "${DB_USER}"
+      NON_ROOT_PASSWORD:     "${DB_PASSWORD}"
+      PRIMARY_HOST_INTERNAL: "mongodb1:27017"
+      REPLICA_SET_NAME:      "${REPLICA_SET_ID}"
+      PRIMARY_HOST:          "${PRIMARY_HOST}:${PRIMARY_HOST_PORT}"
+      SECONDARY_HOST:        "${SECONDARY_HOST}:${SECONDARY_HOST_PORT}"
+      TERTIARY_HOST:         "${TERTIARY_HOST}:${TERTIARY_HOST_PORT}"

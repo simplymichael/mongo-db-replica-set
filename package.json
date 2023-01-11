@@ -1,0 +1,21 @@
+{
+  "name": "mongo-db-replica-set",
+  "version": "1.0.0",
+  "description": "MongoDB Replica Set",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:up": "node scripts/start-db.js",
+    "db:stop": "node scripts/stop-db.js",
+    "db:destroy": "node scripts/stop-db.js -- --down",
+    "db:backup": "node scripts/backup-db.js",
+    "db:restore": "node scripts/restore-db-backup.js", 
+    "db:login": "node scripts/login-to-db.js"
+  },
+  "keywords": [],
+  "author": "simplymichael <simplymichaelorji@gmail.com> (https://github.com/simplymichael)",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "16.0.3"
+  }
+}
